@@ -25,7 +25,8 @@ export function useChat(agentConfig: AgentConfig) {
         });
 
         if (!res.ok) {
-          throw new Error(`API error: ${res.status}`);
+          const errBody = await res.json().catch(() => ({}));
+          throw new Error(errBody.error || `API error: ${res.status}`);
         }
 
         const reader = res.body?.getReader();

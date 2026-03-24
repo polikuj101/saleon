@@ -1,7 +1,6 @@
 import { streamChat } from "@/lib/ai/providers";
 import type { ChatRequest } from "@/lib/types";
 
-export const runtime = "edge";
 
 export async function POST(req: Request) {
   try {
