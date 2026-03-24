@@ -36,15 +36,21 @@ async function streamGrok(
   });
 }
 
-async function streamGemini(
+const GEMINI_MODELS = [
+  "gemini-3.1-flash-lite-preview",
+  "gemini-2.5-flash",
+  "gemini-2.0-flash",
+];
+
+async function tryGeminiModel(
+  genAI: GoogleGenerativeAI,
+  modelName: string,
   systemPrompt: string,
   messages: Message[],
   encoder: TextEncoder
 ): Promise<ReadableStream<Uint8Array>> {
-  const key = process.env.GEMINI_API_KEY!;
-  const genAI = new GoogleGenerativeAI(key);
   const model = genAI.getGenerativeModel({
-    model: process.env.GEMINI_MODEL ?? "gemini-3.1-flash-lite-preview",
+    model: modelName,
     systemInstruction: systemPrompt,
   });
 
@@ -70,6 +76,29 @@ async function streamGemini(
       }
     },
   });
+}
+
+async function streamGemini(
+  systemPrompt: string,
+  messages: Message[],
+  encoder: TextEncoder
+): Promise<ReadableStream<Uint8Array>> {
+  const key = process.env.GEMINI_API_KEY!;
+  const genAI = new GoogleGenerativeAI(key);
+  const models = process.env.GEMINI_MODEL
+    ? [process.env.GEMINI_MODEL]
+    : GEMINI_MODELS;
+
+  for (let i = 0; i < models.length; i++) {
+    try {
+      console.log(`[Gemini] Trying ${models[i]}...`);
+      return await tryGeminiModel(genAI, models[i], systemPrompt, messages, encoder);
+    } catch (err) {
+      console.warn(`[Gemini] ${models[i]} failed:`, err);
+      if (i === models.length - 1) throw err;
+    }
+  }
+  throw new Error("All Gemini models failed");
 }
 
 export async function streamChat(
